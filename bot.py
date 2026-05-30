@@ -15,8 +15,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-CORRECTIONS_FILE = "memory.json"
+MEMORY_FILE = "memory.json"
 
+# =========================
+# NOUN SOURCES
+# =========================
 NOUN_SITES = [
     "https://nou.edu.ng/ecourseware-degs/",
     "https://nou.edu.ng/ecourseware-faculty-of-edu/",
@@ -29,17 +32,29 @@ NOUN_SITES = [
 # MEMORY SYSTEM
 # =========================
 def load_memory():
-    if os.path.exists(CORRECTIONS_FILE):
-        with open(CORRECTIONS_FILE, "r", encoding="utf-8") as f:
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 def save_memory(data):
-    with open(CORRECTIONS_FILE, "w", encoding="utf-8") as f:
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 # =========================
-# LIVE SCRAPER (AUTONOMOUS LEARNING)
+# NORMALIZER
+# =========================
+def normalize(code):
+    return re.sub(r"[^A-Z0-9]", "", code.upper())
+
+def extract_code(text):
+    match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
+    if match:
+        return normalize(match.group())
+    return None
+
+# =========================
+# SCRAPER (SAFE VERSION)
 # =========================
 def scrape_noun_courses():
     courses = {}
@@ -49,44 +64,33 @@ def scrape_noun_courses():
             r = requests.get(url, timeout=10)
             soup = BeautifulSoup(r.text, "html.parser")
 
-            links = soup.find_all("a")
-
-            for link in links:
-                text = link.text.strip()
+            for link in soup.find_all("a"):
+                text = link.get_text(strip=True)
 
                 match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
 
                 if match:
-                    code = match.group().replace(" ", "").upper()
+                    code = normalize(match.group())
                     title = text.replace(match.group(), "").strip(" -–:")
 
-                    courses[code] = {
-                        "title": title,
-                        "source": url
-                    }
+                    if code and title:
+                        courses[code] = {
+                            "title": title,
+                            "source": url
+                        }
 
         except:
             continue
 
     return courses
 
+# =========================
+# BUILD COURSE DB ON START
+# =========================
+COURSE_DB = scrape_noun_courses()
 
 # =========================
-# SMART NORMALIZER
-# =========================
-def normalize(code):
-    return re.sub(r"[^A-Z0-9]", "", code.upper())
-
-
-def extract_code(text):
-    match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
-    if match:
-        return normalize(match.group())
-    return None
-
-
-# =========================
-# AI ENGINE
+# AI ENGINE (SAFE)
 # =========================
 def ask_ai(prompt):
     response = client.chat.completions.create(
@@ -95,12 +99,12 @@ def ask_ai(prompt):
             {
                 "role": "system",
                 "content": """
-You are NOUN AUTONOMOUS AI SYSTEM.
+You are NOUN AI Assistant.
 
-You:
-- use web knowledge + memory + reasoning
-- never hallucinate exact course lists
-- always explain clearly like a university system
+Rules:
+- NEVER invent course titles
+- If unsure, say you are unsure
+- Only explain general academic meaning
 """
             },
             {"role": "user", "content": prompt}
@@ -108,19 +112,11 @@ You:
     )
     return response.choices[0].message.content
 
-
-# =========================
-# AUTO LEARN ENGINE
-# =========================
-COURSE_DB = scrape_noun_courses()
-
-
 # =========================
 # COMMANDS
 # =========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 Autonomous NOUN AI is ACTIVE")
-
+    await update.message.reply_text("🤖 NOUN AI is ACTIVE (Hybrid Engine)")
 
 async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace("/teach", "").strip()
@@ -128,12 +124,12 @@ async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "=" in text:
         key, value = text.split("=", 1)
         key = normalize(key)
-        mem = load_memory()
-        mem[key] = value.strip()
-        save_memory(mem)
 
-        await update.message.reply_text(f"✅ Learned {key}")
+        memory = load_memory()
+        memory[key] = value.strip()
+        save_memory(memory)
 
+        await update.message.reply_text(f"✅ Learned: {key}")
 
 # =========================
 # MAIN ENGINE
@@ -145,7 +141,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     code = extract_code(text)
 
     # =========================
-    # 1. MEMORY CHECK
+    # 1. MEMORY FIRST
     # =========================
     if code:
         if code in memory:
@@ -153,19 +149,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # =========================
-        # 2. LIVE SCRAPED DB
+        # 2. COURSE DB SECOND
         # =========================
         if code in COURSE_DB:
             course = COURSE_DB[code]
+
             await update.message.reply_text(
-                f"📘 {code}\n🎓 {course['title']}\n\n🌐 Source: {course['source']}"
+                f"""📘 {code}
+🎓 {course['title']}
+
+🌐 Source: {course['source']}"""
             )
             return
 
         # =========================
-        # 3. AI FALLBACK (SAFE)
+        # 3. AI LAST RESORT
         # =========================
-        reply = ask_ai(f"Explain NOUN course code {code}")
+        reply = ask_ai(f"Explain this NOUN course code carefully: {code}")
         await update.message.reply_text(reply)
         return
 
@@ -175,18 +175,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply = ask_ai(text)
     await update.message.reply_text(reply)
 
-
 # =========================
 # START BOT
 # =========================
 if __name__ == "__main__":
-    print("🚀 AUTONOMOUS NOUN AI RUNNING")
+    print("🚀 NOUN HYBRID AI RUNNING")
 
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("teach", teach))
-
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     app.run_polling(drop_pending_updates=True)
