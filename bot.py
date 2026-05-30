@@ -1,53 +1,84 @@
 import os
-import json
 import re
+import json
+import requests
+from bs4 import BeautifulSoup
 from openai import OpenAI
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    ContextTypes,
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
+# =========================
+# CONFIG
+# =========================
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-CORRECTIONS_FILE = "corrections.json"
+CORRECTIONS_FILE = "memory.json"
+
+NOUN_SITES = [
+    "https://nou.edu.ng/ecourseware-degs/",
+    "https://nou.edu.ng/ecourseware-faculty-of-edu/",
+    "https://nou.edu.ng/ecourseware-faculty-of-agric/",
+    "https://nou.edu.ng/ecourseware-faculty-of-health-sc/",
+    "https://nou.edu.ng/ecourseware/"
+]
 
 # =========================
-# LOAD COURSES (WITH FULL NORMALIZATION)
+# MEMORY SYSTEM
 # =========================
-with open("courses.json", "r", encoding="utf-8") as f:
-    RAW_COURSES = json.load(f)
-
-def normalize(code):
-    return re.sub(r"[^A-Z0-9]", "", code.upper())
-
-COURSES = {normalize(k): v for k, v in RAW_COURSES.items()}
-
-
-# =========================
-# CORRECTIONS SYSTEM
-# =========================
-def load_corrections():
+def load_memory():
     if os.path.exists(CORRECTIONS_FILE):
         with open(CORRECTIONS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
-def save_corrections(data):
+def save_memory(data):
     with open(CORRECTIONS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+# =========================
+# LIVE SCRAPER (AUTONOMOUS LEARNING)
+# =========================
+def scrape_noun_courses():
+    courses = {}
+
+    for url in NOUN_SITES:
+        try:
+            r = requests.get(url, timeout=10)
+            soup = BeautifulSoup(r.text, "html.parser")
+
+            links = soup.find_all("a")
+
+            for link in links:
+                text = link.text.strip()
+
+                match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
+
+                if match:
+                    code = match.group().replace(" ", "").upper()
+                    title = text.replace(match.group(), "").strip(" -–:")
+
+                    courses[code] = {
+                        "title": title,
+                        "source": url
+                    }
+
+        except:
+            continue
+
+    return courses
+
 
 # =========================
-# COURSE DETECTION (IMPROVED)
+# SMART NORMALIZER
 # =========================
-def find_course_code(text):
+def normalize(code):
+    return re.sub(r"[^A-Z0-9]", "", code.upper())
+
+
+def extract_code(text):
     match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
     if match:
         return normalize(match.group())
@@ -55,31 +86,7 @@ def find_course_code(text):
 
 
 # =========================
-# INTENT DETECTION
-# =========================
-def detect_intent(text):
-    text = text.lower()
-
-    if re.search(r"\b[a-z]{2,4}\s?-?\d{3}\b", text.lower()):
-        return "course"
-
-    if "summary" in text:
-        return "summary"
-
-    if "past question" in text or "pq" in text:
-        return "past_question"
-
-    if "material" in text:
-        return "material"
-
-    if "how to" in text:
-        return "how_to"
-
-    return "ai"
-
-
-# =========================
-# AI (SAFE FALLBACK)
+# AI ENGINE
 # =========================
 def ask_ai(prompt):
     response = client.chat.completions.create(
@@ -88,9 +95,12 @@ def ask_ai(prompt):
             {
                 "role": "system",
                 "content": """
-You are NOUN AI Assistant.
-NEVER invent course codes or titles.
-Be concise.
+You are NOUN AUTONOMOUS AI SYSTEM.
+
+You:
+- use web knowledge + memory + reasoning
+- never hallucinate exact course lists
+- always explain clearly like a university system
 """
             },
             {"role": "user", "content": prompt}
@@ -100,129 +110,82 @@ Be concise.
 
 
 # =========================
+# AUTO LEARN ENGINE
+# =========================
+COURSE_DB = scrape_noun_courses()
+
+
+# =========================
 # COMMANDS
 # =========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🤖 NOUN AI Assistant is active.\nAsk me anything academic."
-    )
+    await update.message.reply_text("🤖 Autonomous NOUN AI is ACTIVE")
 
 
 async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace("/teach", "").strip()
 
-    if "=" not in text:
-        await update.message.reply_text("Format: /teach GST105 = Course Title")
-        return
+    if "=" in text:
+        key, value = text.split("=", 1)
+        key = normalize(key)
+        mem = load_memory()
+        mem[key] = value.strip()
+        save_memory(mem)
 
-    key, value = text.split("=", 1)
-    key = normalize(key)
-    value = value.strip()
-
-    corrections = load_corrections()
-    corrections[key] = value
-    save_corrections(corrections)
-
-    await update.message.reply_text(f"✅ Learned: {key} = {value}")
-
-
-async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    corrections = load_corrections()
-
-    if not corrections:
-        await update.message.reply_text("No saved corrections.")
-        return
-
-    msg = "📚 Learned courses:\n\n"
-    for k, v in corrections.items():
-        msg += f"{k} = {v}\n"
-
-    await update.message.reply_text(msg[:4000])
-
-
-async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    key = normalize(update.message.text.replace("/forget", "").strip())
-
-    corrections = load_corrections()
-
-    if key in corrections:
-        del corrections[key]
-        save_corrections(corrections)
-        await update.message.reply_text(f"🗑 Removed {key}")
-    else:
-        await update.message.reply_text("Not found.")
+        await update.message.reply_text(f"✅ Learned {key}")
 
 
 # =========================
-# MAIN HANDLER
+# MAIN ENGINE
 # =========================
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
+    text = update.message.text
 
-    corrections = load_corrections()
-
-    code = find_course_code(user_text)
+    memory = load_memory()
+    code = extract_code(text)
 
     # =========================
-    # 1. CORRECTIONS FIRST
+    # 1. MEMORY CHECK
     # =========================
     if code:
-        if code in corrections:
-            await update.message.reply_text(f"📘 {code}: {corrections[code]}")
+        if code in memory:
+            await update.message.reply_text(f"📘 {code}: {memory[code]}")
             return
 
-        if code in COURSES:
-            course = COURSES[code]
-
+        # =========================
+        # 2. LIVE SCRAPED DB
+        # =========================
+        if code in COURSE_DB:
+            course = COURSE_DB[code]
             await update.message.reply_text(
-                f"""📘 {code}
-🎓 {course['title']}
-
-📖 {course.get('psalmedu_material', '')}
-📚 {course.get('summary', '')}
-📄 {course.get('past_questions', '')}
-"""
+                f"📘 {code}\n🎓 {course['title']}\n\n🌐 Source: {course['source']}"
             )
             return
 
-        await update.message.reply_text("❌ Course not found.")
+        # =========================
+        # 3. AI FALLBACK (SAFE)
+        # =========================
+        reply = ask_ai(f"Explain NOUN course code {code}")
+        await update.message.reply_text(reply)
         return
 
     # =========================
-    # 2. INTENT HANDLING
+    # GENERAL AI MODE
     # =========================
-    intent = detect_intent(user_text)
-
-    if intent == "summary":
-        reply = "📘 https://psalmedu.com/summary"
-
-    elif intent == "past_question":
-        reply = "📄 https://psalmedu.com/noun-past-questions"
-
-    elif intent == "material":
-        reply = "📖 https://psalmedu.com/noun-material"
-
-    elif intent == "how_to":
-        reply = "📲 https://wa.me/9163490176"
-
-    else:
-        reply = ask_ai(user_text)
-
+    reply = ask_ai(text)
     await update.message.reply_text(reply)
 
 
 # =========================
-# START BOT (RAILWAY SAFE)
+# START BOT
 # =========================
 if __name__ == "__main__":
-    print("Bot is starting...")
+    print("🚀 AUTONOMOUS NOUN AI RUNNING")
 
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("teach", teach))
-    app.add_handler(CommandHandler("learned", learned))
-    app.add_handler(CommandHandler("forget", forget))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
