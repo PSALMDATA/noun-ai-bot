@@ -2514,7 +2514,7 @@
   },
   "GST707": {
     "title": "A Study Guide For The Distance Learner",
-    "source": "https://nou.edu.ng/ecourseware-faculty-of-edu/",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
     "psalmedu_material": "https://psalmedu.com/noun-material",
     "summary": "https://psalmedu.com/summary",
     "past_questions": "https://psalmedu.com/noun-past-questions"
@@ -14163,6 +14163,188 @@
   "ENG955": {
     "title": "English-Based Pidgins/Creoles And Decreolization",
     "source": "https://nou.edu.ng/ecourseware-faculty-of-arts/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST103": {
+    "title": "Computer Fundamentals",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST105": {
+    "title": "History And Philosophy Of Science",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST201": {
+    "title": "Nigerian Peoples And Culture",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST202": {
+    "title": "Fundamentals Of Peace Studies And Conflict Resolution",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST107": {
+    "title": "A Study Guide For The Distance Learner",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST101": {
+    "title": "Use Of English & Communication Skills I",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST104": {
+    "title": "Use Of Library",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST102": {
+    "title": "Use Of English & Communication Skills Ii",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST204": {
+    "title": "Entrepreneurship And Innovation",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST203": {
+    "title": "Introduction To Philosophy And Logic",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST301": {
+    "title": "Entrepreneurship Studies 1",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST302": {
+    "title": "Business Creation And Growth",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "GST807": {
+    "title": "A Study Guide For The Distance Learner",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE001": {
+    "title": "Entrepreneurial Thinking 100 De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE002": {
+    "title": "Creativity And Innovation De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE003": {
+    "title": "Value Chain And Record Keeping De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE004": {
+    "title": "Business Modelling De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE005": {
+    "title": "Financial Planning And Management De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE006": {
+    "title": "Marketing De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE007": {
+    "title": "Monitoring And Evaluation De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE008": {
+    "title": "Technology In Business Management De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE009": {
+    "title": "Business Plan Development De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE010": {
+    "title": "Winning A Grant For Start-Up Business And Research Commercialisation De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE011": {
+    "title": "Business Sustainability De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE012": {
+    "title": "Statutory Agencies In Business And Business Registration De&Gs",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
+    "psalmedu_material": "https://psalmedu.com/noun-material",
+    "summary": "https://psalmedu.com/summary",
+    "past_questions": "https://psalmedu.com/noun-past-questions"
+  },
+  "NEE013": {
+    "title": "Business Canvas De&Gs Nicc Noun Information Call Centre Phone Nos.: +234 908 290 7092 Email: Centralinfo@Noun.Edu.Ng Student Support Services: Support.Nou.Edu.Ng Https://Store.Siccura.Com/ Https://Consumerstore.Siccura.Com/ Slot777 Https://Sandagroup.Com/ Https://Globalpanorama.Co.Id/ Slot777 Sbobet Slot138 Slot138 Https://Advisory.Abacus.Co.Ke/ Dewi138 Sultan69 Panengg Slot Bet 200 Slot138 Quick Links Apply Now My Learning Space Noun Facilitators Noun Academics Noun Ecourseware Faqs Registration Procedure For Nysc Exclusion Letter Employee Exit Clearance Form Events Calendar May 2026 M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 « Apr Facebook X Instagram © 2025 Noun Dict. All Rights Reserved Prospective/Returning Students ←",
+    "source": "https://nou.edu.ng/ecourseware-degs/",
     "psalmedu_material": "https://psalmedu.com/noun-material",
     "summary": "https://psalmedu.com/summary",
     "past_questions": "https://psalmedu.com/noun-past-questions"
