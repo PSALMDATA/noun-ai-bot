@@ -18,15 +18,22 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 CORRECTIONS_FILE = "corrections.json"
 
-# Load courses database
+# =========================
+# LOAD COURSES
+# =========================
 with open("courses.json", "r", encoding="utf-8") as f:
     COURSES = json.load(f)
+
+# normalize ALL keys (VERY IMPORTANT FIX)
+COURSES = {
+    k.replace(" ", "").replace("-", "").upper(): v
+    for k, v in COURSES.items()
+}
 
 
 # =========================
 # CORRECTIONS SYSTEM
 # =========================
-
 def load_corrections():
     if os.path.exists(CORRECTIONS_FILE):
         with open(CORRECTIONS_FILE, "r", encoding="utf-8") as f:
@@ -40,36 +47,42 @@ def save_corrections(data):
 
 
 # =========================
-# COURSE DETECTION
+# COURSE EXTRACTION (FIXED)
 # =========================
-
 def find_course_code(text):
-    match = re.search(r"\b[A-Z]{2,4}\s?\d{3}\b", text.upper())
+    match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
     if match:
-        return match.group().replace(" ", "")
+        return match.group().replace(" ", "").replace("-", "").upper()
     return None
 
 
-def find_course_info(text):
-    code = find_course_code(text)
-    if code and code in COURSES:
-        return code, COURSES[code]
-    return None, None
+def find_course_info(code):
+    if not code:
+        return None, None
+
+    code = code.replace(" ", "").replace("-", "").upper()
+
+    return code, COURSES.get(code)
 
 
 # =========================
 # INTENT DETECTION
 # =========================
-
 def detect_intent(text):
     text = text.lower()
 
+    if re.search(r"\b[a-z]{2,4}\s?-?\d{3}\b", text.lower()):
+        return "course"
+
     if "summary" in text:
         return "summary"
+
     if "past question" in text or "pq" in text:
         return "past_question"
+
     if "material" in text:
         return "material"
+
     if "how to" in text or "how do i" in text:
         return "how_to"
 
@@ -77,9 +90,8 @@ def detect_intent(text):
 
 
 # =========================
-# OPENAI
+# AI (SAFE FALLBACK ONLY)
 # =========================
-
 def ask_ai(prompt):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -87,9 +99,9 @@ def ask_ai(prompt):
             {
                 "role": "system",
                 "content": """
-You are NOUN AI Assistant created by PSALMEDU.
-Be accurate. Do not invent course titles.
-Be concise and helpful.
+You are NOUN AI Assistant.
+Do NOT guess course titles if unsure.
+Be concise.
 """
             },
             {"role": "user", "content": prompt}
@@ -101,7 +113,6 @@ Be concise and helpful.
 # =========================
 # COMMANDS
 # =========================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🤖 NOUN AI Assistant is active.\nAsk me anything academic."
@@ -116,14 +127,14 @@ async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     key, value = text.split("=", 1)
-    key = key.strip().upper()
+    key = key.strip().replace(" ", "").upper()
     value = value.strip()
 
     corrections = load_corrections()
     corrections[key] = value
     save_corrections(corrections)
 
-    await update.message.reply_text(f"✅ Saved: {key} = {value}")
+    await update.message.reply_text(f"✅ Learned: {key} = {value}")
 
 
 async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -133,7 +144,7 @@ async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No saved corrections.")
         return
 
-    msg = "📚 Saved corrections:\n\n"
+    msg = "📚 Learned courses:\n\n"
     for k, v in corrections.items():
         msg += f"{k} = {v}\n"
 
@@ -141,7 +152,7 @@ async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    key = update.message.text.replace("/forget", "").strip().upper()
+    key = update.message.text.replace("/forget", "").strip().replace(" ", "").upper()
 
     corrections = load_corrections()
 
@@ -156,42 +167,42 @@ async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # MAIN HANDLER
 # =========================
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
 
     corrections = load_corrections()
-    detected_code = find_course_code(user_text)
 
-    # FIXED FLOW: corrections first
-    if detected_code and detected_code in corrections:
-        title = corrections[detected_code]
+    code = find_course_code(user_text)
 
-        reply = (
-            f"📘 {detected_code}: {title}\n\n"
-            f"📖 https://psalmedu.com/noun-material\n"
-            f"📚 https://psalmedu.com/summary\n"
-            f"📄 https://psalmedu.com/noun-past-questions"
-        )
+    # 1. PRIORITY: corrections
+    if code:
+        code = code.replace(" ", "").upper()
 
-        await update.message.reply_text(reply)
+        if code in corrections:
+            await update.message.reply_text(
+                f"📘 {code}: {corrections[code]}"
+            )
+            return
+
+        if code in COURSES:
+            course = COURSES[code]
+
+            await update.message.reply_text(
+                f"""📘 {code}
+🎓 {course['title']}
+
+📖 {course.get('psalmedu_material', '')}
+📚 {course.get('summary', '')}
+📄 {course.get('past_questions', '')}
+"""
+            )
+            return
+
+        # ❌ NEVER let AI guess courses
+        await update.message.reply_text("❌ Course not found.")
         return
 
-    # COURSE DATABASE
-    course_code, course_data = find_course_info(user_text)
-
-    if course_code:
-        reply = (
-            f"📘 {course_code}\n"
-            f"🎓 {course_data['title']}\n\n"
-            f"📖 {course_data['psalmedu_material']}\n"
-            f"📚 {course_data['summary']}\n"
-            f"📄 {course_data['past_questions']}"
-        )
-        await update.message.reply_text(reply)
-        return
-
-    # INTENT
+    # 2. INTENT
     intent = detect_intent(user_text)
 
     if intent == "summary":
@@ -213,9 +224,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =========================
-# APP START (IMPORTANT FIX)
+# START BOT
 # =========================
-
 if __name__ == "__main__":
     print("Bot is starting...")
 
@@ -226,8 +236,6 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("learned", learned))
     app.add_handler(CommandHandler("forget", forget))
 
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     app.run_polling(drop_pending_updates=True)
