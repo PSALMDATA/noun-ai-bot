@@ -45,19 +45,15 @@ def save_corrections(data):
 
 def find_course_code(text):
     match = re.search(r"\b[A-Z]{2,4}\s?\d{3}\b", text.upper())
-
     if match:
         return match.group().replace(" ", "")
-
     return None
 
 
 def find_course_info(text):
     code = find_course_code(text)
-
     if code and code in COURSES:
         return code, COURSES[code]
-
     return None, None
 
 
@@ -68,19 +64,12 @@ def find_course_info(text):
 def detect_intent(text):
     text = text.lower()
 
-    if "summary" in text or "summaries" in text:
+    if "summary" in text:
         return "summary"
-
-    if (
-        "past question" in text
-        or "past questions" in text
-        or "pq" in text
-    ):
+    if "past question" in text or "pq" in text:
         return "past_question"
-
-    if "material" in text or "course material" in text:
+    if "material" in text:
         return "material"
-
     if "how to" in text or "how do i" in text:
         return "how_to"
 
@@ -88,7 +77,7 @@ def detect_intent(text):
 
 
 # =========================
-# OPENAI RESPONSE
+# OPENAI
 # =========================
 
 def ask_ai(prompt):
@@ -99,254 +88,146 @@ def ask_ai(prompt):
                 "role": "system",
                 "content": """
 You are NOUN AI Assistant created by PSALMEDU.
-
-You help NOUN students with:
-- summaries
-- past questions
-- course materials
-- exam guidance
-- TMA guidance
-
-IMPORTANT RULES:
-- If a verified NOUN course title exists, use it.
-- Never invent course titles.
-- Be concise and student-friendly.
-- Always promote https://psalmedu.com when relevant.
+Be accurate. Do not invent course titles.
+Be concise and helpful.
 """
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt}
         ]
     )
-
     return response.choices[0].message.content
 
 
 # =========================
-# START COMMAND
+# COMMANDS
 # =========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🤖 NOUN AI Assistant is active.\n\nAsk me anything academic."
+        "🤖 NOUN AI Assistant is active.\nAsk me anything academic."
     )
 
-
-# =========================
-# TEACH COMMAND
-# =========================
 
 async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace("/teach", "").strip()
 
     if "=" not in text:
-        await update.message.reply_text(
-            "Use this format:\n/teach GST105 = History and Philosophy of Science"
-        )
+        await update.message.reply_text("Format: /teach GST105 = Course Title")
         return
 
     key, value = text.split("=", 1)
-
     key = key.strip().upper()
     value = value.strip()
 
     corrections = load_corrections()
-
     corrections[key] = value
-
     save_corrections(corrections)
 
-    await update.message.reply_text(
-        f"✅ Saved correction:\n{key} = {value}"
-    )
+    await update.message.reply_text(f"✅ Saved: {key} = {value}")
 
-
-# =========================
-# LEARNED COMMAND
-# =========================
 
 async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
     corrections = load_corrections()
 
     if not corrections:
-        await update.message.reply_text(
-            "No corrections saved yet."
-        )
+        await update.message.reply_text("No saved corrections.")
         return
 
-    text = "📚 Saved corrections:\n\n"
+    msg = "📚 Saved corrections:\n\n"
+    for k, v in corrections.items():
+        msg += f"{k} = {v}\n"
 
-    for key, value in corrections.items():
-        text += f"{key} = {value}\n"
+    await update.message.reply_text(msg[:4000])
 
-    await update.message.reply_text(text[:4000])
-
-
-# =========================
-# FORGET COMMAND
-# =========================
 
 async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key = update.message.text.replace("/forget", "").strip().upper()
-
-    if not key:
-        await update.message.reply_text(
-            "Use this format:\n/forget GST105"
-        )
-        return
 
     corrections = load_corrections()
 
     if key in corrections:
         del corrections[key]
-
         save_corrections(corrections)
-
-        await update.message.reply_text(
-            f"🗑️ Removed correction for {key}"
-        )
+        await update.message.reply_text(f"🗑 Removed {key}")
     else:
-        await update.message.reply_text(
-            f"No correction found for {key}"
-        )
+        await update.message.reply_text("Not found.")
 
 
 # =========================
-# MAIN MESSAGE HANDLER
+# MAIN HANDLER
 # =========================
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
 
-    # -------------------------
-    # CHECK MANUAL CORRECTIONS
-    # -------------------------
-
     corrections = load_corrections()
-
     detected_code = find_course_code(user_text)
 
+    # FIXED FLOW: corrections first
     if detected_code and detected_code in corrections:
+        title = corrections[detected_code]
 
-        course_title = corrections[detected_code]
-
-        if user_text.strip().upper() == detected_code:
-
-            reply = (
-                f"📘 {detected_code}: {course_title}\n\n"
-                f"📖 Course Materials:\nhttps://psalmedu.com/noun-material\n\n"
-                f"📚 Summaries:\nhttps://psalmedu.com/summary\n\n"
-                f"📄 Past Questions:\nhttps://psalmedu.com/noun-past-questions"
-            )
-
-        else:
-
-            verified_prompt = f"""
-The student is asking about this verified NOUN course:
-
-Course Code: {detected_code}
-Course Title: {course_title}
-
-Use this verified information.
-Do not invent another title.
-
-Student question:
-{user_text}
-"""
-
-            reply = ask_ai(verified_prompt)
-
-            reply += "\n\n📚 More academic help: https://psalmedu.com"
+        reply = (
+            f"📘 {detected_code}: {title}\n\n"
+            f"📖 https://psalmedu.com/noun-material\n"
+            f"📚 https://psalmedu.com/summary\n"
+            f"📄 https://psalmedu.com/noun-past-questions"
+        )
 
         await update.message.reply_text(reply)
-
         return
 
-    # -------------------------
-    # CHECK COURSES DATABASE
-    # -------------------------
-
+    # COURSE DATABASE
     course_code, course_data = find_course_info(user_text)
 
     if course_code:
-
         reply = (
             f"📘 {course_code}\n"
             f"🎓 {course_data['title']}\n\n"
-            f"📖 Materials:\n{course_data['psalmedu_material']}\n\n"
-            f"📚 Summaries:\n{course_data['summary']}\n\n"
-            f"📄 Past Questions:\n{course_data['past_questions']}"
+            f"📖 {course_data['psalmedu_material']}\n"
+            f"📚 {course_data['summary']}\n"
+            f"📄 {course_data['past_questions']}"
         )
-
         await update.message.reply_text(reply)
-
         return
 
-    # -------------------------
-    # DETECT INTENT
-    # -------------------------
-
+    # INTENT
     intent = detect_intent(user_text)
 
     if intent == "summary":
-
-        reply = (
-            "📘 Kindly search the group using the search button "
-            "or visit:\nhttps://psalmedu.com/summary"
-        )
+        reply = "📘 https://psalmedu.com/summary"
 
     elif intent == "past_question":
-
-        reply = (
-            "📄 Kindly download all past questions from:\n"
-            "https://psalmedu.com/noun-past-questions"
-        )
+        reply = "📄 https://psalmedu.com/noun-past-questions"
 
     elif intent == "material":
-
-        reply = (
-            "📖 Kindly download course materials from:\n"
-            "https://psalmedu.com/noun-material"
-        )
+        reply = "📖 https://psalmedu.com/noun-material"
 
     elif intent == "how_to":
-
-        reply = (
-            "📲 Kindly DM Admin here:\n"
-            "https://wa.me/9163490176"
-        )
+        reply = "📲 https://wa.me/9163490176"
 
     else:
-
         reply = ask_ai(user_text)
-
-        reply += "\n\n📚 More academic help: https://psalmedu.com"
 
     await update.message.reply_text(reply)
 
 
 # =========================
-# APP
+# APP START (IMPORTANT FIX)
 # =========================
 
-app = ApplicationBuilder().token(
-    TELEGRAM_BOT_TOKEN
-).build()
+if __name__ == "__main__":
+    print("Bot is starting...")
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("teach", teach))
-app.add_handler(CommandHandler("learned", learned))
-app.add_handler(CommandHandler("forget", forget))
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-app.add_handler(
-    MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        handle_message
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("teach", teach))
+    app.add_handler(CommandHandler("learned", learned))
+    app.add_handler(CommandHandler("forget", forget))
+
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
     )
-)
 
-print("Bot is running...")
-
-
+    app.run_polling(drop_pending_updates=True)
