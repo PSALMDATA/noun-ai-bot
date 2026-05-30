@@ -19,16 +19,15 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 CORRECTIONS_FILE = "corrections.json"
 
 # =========================
-# LOAD COURSES
+# LOAD COURSES (WITH FULL NORMALIZATION)
 # =========================
 with open("courses.json", "r", encoding="utf-8") as f:
-    COURSES = json.load(f)
+    RAW_COURSES = json.load(f)
 
-# normalize ALL keys (VERY IMPORTANT FIX)
-COURSES = {
-    k.replace(" ", "").replace("-", "").upper(): v
-    for k, v in COURSES.items()
-}
+def normalize(code):
+    return re.sub(r"[^A-Z0-9]", "", code.upper())
+
+COURSES = {normalize(k): v for k, v in RAW_COURSES.items()}
 
 
 # =========================
@@ -40,29 +39,19 @@ def load_corrections():
             return json.load(f)
     return {}
 
-
 def save_corrections(data):
     with open(CORRECTIONS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 # =========================
-# COURSE EXTRACTION (FIXED)
+# COURSE DETECTION (IMPROVED)
 # =========================
 def find_course_code(text):
     match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
     if match:
-        return match.group().replace(" ", "").replace("-", "").upper()
+        return normalize(match.group())
     return None
-
-
-def find_course_info(code):
-    if not code:
-        return None, None
-
-    code = code.replace(" ", "").replace("-", "").upper()
-
-    return code, COURSES.get(code)
 
 
 # =========================
@@ -83,14 +72,14 @@ def detect_intent(text):
     if "material" in text:
         return "material"
 
-    if "how to" in text or "how do i" in text:
+    if "how to" in text:
         return "how_to"
 
     return "ai"
 
 
 # =========================
-# AI (SAFE FALLBACK ONLY)
+# AI (SAFE FALLBACK)
 # =========================
 def ask_ai(prompt):
     response = client.chat.completions.create(
@@ -100,7 +89,7 @@ def ask_ai(prompt):
                 "role": "system",
                 "content": """
 You are NOUN AI Assistant.
-Do NOT guess course titles if unsure.
+NEVER invent course codes or titles.
 Be concise.
 """
             },
@@ -127,7 +116,7 @@ async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     key, value = text.split("=", 1)
-    key = key.strip().replace(" ", "").upper()
+    key = normalize(key)
     value = value.strip()
 
     corrections = load_corrections()
@@ -152,7 +141,7 @@ async def learned(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def forget(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    key = update.message.text.replace("/forget", "").strip().replace(" ", "").upper()
+    key = normalize(update.message.text.replace("/forget", "").strip())
 
     corrections = load_corrections()
 
@@ -174,14 +163,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     code = find_course_code(user_text)
 
-    # 1. PRIORITY: corrections
+    # =========================
+    # 1. CORRECTIONS FIRST
+    # =========================
     if code:
-        code = code.replace(" ", "").upper()
-
         if code in corrections:
-            await update.message.reply_text(
-                f"📘 {code}: {corrections[code]}"
-            )
+            await update.message.reply_text(f"📘 {code}: {corrections[code]}")
             return
 
         if code in COURSES:
@@ -198,11 +185,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # ❌ NEVER let AI guess courses
         await update.message.reply_text("❌ Course not found.")
         return
 
-    # 2. INTENT
+    # =========================
+    # 2. INTENT HANDLING
+    # =========================
     intent = detect_intent(user_text)
 
     if intent == "summary":
@@ -224,7 +212,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =========================
-# START BOT
+# START BOT (RAILWAY SAFE)
 # =========================
 if __name__ == "__main__":
     print("Bot is starting...")

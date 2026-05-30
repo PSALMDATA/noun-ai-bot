@@ -9,6 +9,7 @@ FACULTY_URLS = [
     "https://nou.edu.ng/ecourseware-faculty-of-social-sc/",
     "https://nou.edu.ng/ecourseware-faculty-of-management-sc/",
     "https://nou.edu.ng/ecourseware-faculty-of-arts/",
+    "https://nou.edu.ng/ecourseware-degs/",
     "https://nou.edu.ng/ecourseware-faculty-of-agric/",
     "https://nou.edu.ng/ecourseware-faculty-of-health-sc/",
     "https://nou.edu.ng/ecourseware-faculty-of-law/",
