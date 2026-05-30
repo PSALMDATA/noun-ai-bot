@@ -61,29 +61,28 @@ def scrape_noun_courses():
 
     for url in NOUN_SITES:
         try:
-            r = requests.get(url, timeout=10)
+            r = requests.get(url, timeout=15)
             soup = BeautifulSoup(r.text, "html.parser")
 
-            for link in soup.find_all("a"):
-                text = link.get_text(strip=True)
+            text = soup.get_text(" ")
 
-                match = re.search(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
+            matches = re.findall(r"\b[A-Z]{2,4}\s?-?\d{3}\b", text.upper())
 
-                if match:
-                    code = normalize(match.group())
-                    title = text.replace(match.group(), "").strip(" -–:")
+            for match in matches:
+                code = normalize(match)
 
-                    if code and title:
-                        courses[code] = {
-                            "title": title,
-                            "source": url
-                        }
+                # try find surrounding text as title (basic fallback)
+                title_guess = "NOUN Course"
+
+                courses[code] = {
+                    "title": title_guess,
+                    "source": url
+                }
 
         except:
             continue
 
     return courses
-
 # =========================
 # BUILD COURSE DB ON START
 # =========================
@@ -135,10 +134,36 @@ async def teach(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MAIN ENGINE
 # =========================
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
+    text = update.message.text.upper().strip()
 
     memory = load_memory()
     code = extract_code(text)
+
+    if code:
+
+        # 1. MEMORY
+        if code in memory:
+            await update.message.reply_text(f"📘 {code}: {memory[code]}")
+            return
+
+        # 2. COURSE DB (STRICT)
+        course = COURSE_DB.get(code)
+
+        if course:
+            await update.message.reply_text(
+                f"""📘 {code}
+🎓 {course['title']}
+🌐 {course['source']}"""
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ {code} not found in NOUN database."
+            )
+
+        return
+
+    # NON-CODE → NO AI GUESSING
+    await update.message.reply_text("Please send a valid course code like GST101")
 
     # =========================
     # 1. MEMORY FIRST
@@ -165,10 +190,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # =========================
         # 3. AI LAST RESORT
         # =========================
-        reply = ask_ai(f"Explain this NOUN course code carefully: {code}")
-        await update.message.reply_text(reply)
-        return
-
+       
     # =========================
     # GENERAL AI MODE
     # =========================
