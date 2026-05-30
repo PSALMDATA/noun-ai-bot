@@ -5,4 +5,3 @@ MISE_PYTHON_GITHUB_ATTESTATIONS = "false"
 nixPkgs = ["python311"]
 
 [start]
-cmd = "python bot.py"

@@ -349,4 +349,4 @@ app.add_handler(
 
 print("Bot is running...")
 
-app.run_polling()
+
